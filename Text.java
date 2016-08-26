@@ -1,6 +1,8 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
@@ -86,12 +88,11 @@ public class Text {
 		return Collections.frequency(new ArrayList<String>(Arrays.asList(wordCountText)), word);	
 	}
 
-	public TreeMap<String, Integer> getNgrams(int ngramLength){
+	public HashMap<String, Integer> getNgrams(int ngramLength){
 
 		String noSpaces = text.replaceAll("\\s+", "");
 
-		TreeMap<String, Integer> ngrams = new TreeMap<String, Integer>();
-
+		HashMap<String, Integer> ngrams = new HashMap<String, Integer>();
 
 
 		for(int i = 0; i < noSpaces.length(); i++){
@@ -125,5 +126,7 @@ public class Text {
 
 		return freq;
 	}
+	
+	
 
 }

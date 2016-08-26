@@ -1,20 +1,42 @@
-import java.awt.List;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.HashMap;
+
+import java.util.LinkedHashSet;
 
 import javax.swing.SwingWorker;
 
+import org.forester.evoinference.matrix.distance.*;
+
+import org.forester.phylogeny.Phylogeny;
+
+import dendroscope.core.TreeData;
+import dendroscope.io.Nexus;
+
+import jloda.phylo.PhyloTree;
+
+
+import org.forester.evoinference.distance.*;
+
+
+
 public class FFP extends SwingWorker<Void, Void>{
 
-	TreeMap<String, Integer> featureSet;
-	String[] featureList;
+	//TODO HEY MAKE THESE HAVE SCOPE YO
+	LinkedHashSet<String> featureSet;
+	//String[] featureList;
 	TextList tl;
-	ArrayList<TreeMap<String, Integer>> textNgramCount;
+	ArrayList<HashMap<String, Integer>> textNgramCount;
 	double[][] frequencies;
+	BasicSymmetricalDistanceMatrix dm;
 	int ngramLength;
+	Phylogeny tree;
+	PhyloTree treeOut;
+	boolean complete = false;
 
 	public FFP(TextList tl, int ngramLength){
 
@@ -22,121 +44,153 @@ public class FFP extends SwingWorker<Void, Void>{
 		this.ngramLength = ngramLength;
 	}
 
-
+	//TODO break this down into submethods
 	//gets all ngrams from all texts
-		public void buildFeatureList(int ngramLength){
-			
-			//map of individual text ngram/counts
-			textNgramCount = new ArrayList<TreeMap<String, Integer>>();
-			//map of all ngrams/zeroed counts
-			featureSet = new TreeMap<String, Integer>();
-			
-			for(Text t:tl.getTextList()){
-				//go back to integer??
-				TreeMap<String, Integer> ngrams = new TreeMap<String, Integer>();
-				ngrams = t.getNgrams(ngramLength);
-				//store ngrams/count for this text
-				textNgramCount.add(ngrams);
-								
-				//add ngrams/zeroed counts to list of all ngrams for merging
-				featureSet.putAll(ngrams);
-				
-				//zero the counts in list of all
-				for(String s:featureSet.keySet()){
-					featureSet.put(s, 0);
-				}
-			}
-			
-			//create frequency array of all ngrams for each text
-			
-			frequencies = new double[tl.getTextListLength()][featureSet.size()];
-			
-			int i = 0;
-			for(TreeMap<String,Integer> tm:textNgramCount){
-				int j = 0;
-				for(String s: featureSet.keySet()){
-					if(tm.get(s) != null){
-						frequencies[i][j++] = (double)tm.get(s);
-					}
-					else{
-						frequencies[i][j++] = 0.0;
-					}
-				}
-			}
-			
-		
-			//REMOVE THE BELOW IF THE ABOVE WORKS!! Which I bet it doesn't. Even though it looks like it does.
-			
-//			//merge the profile for each text with the overall ngram counts
-//			
-//			
-//			
-//			
-//			ArrayList<TreeMap<String, Double>> tempFrequencies = new ArrayList<TreeMap<String, Double>>();
-//			
-//			for(TreeMap<String, Double> ngrams: textNgramCount){
-//				TreeMap<String, Double> temp = new TreeMap<String, Double>();
-//				temp.putAll(featureSet);
-//				
-//				for(String s: ngrams.keySet()){
-//					temp.put(s, ngrams.get(s));
-//				}
-//				
-//				tempFrequencies.add(temp);
-//				
-//			}
-//			
-//			//convert values to a 2d array
-//			frequencies =  new Double[tempFrequencies.size()][featureSet.values().size()];
-//			
-//			for(int i = 0; i < frequencies.length; i++){
-//				frequencies[i] = tempFrequencies.get(i).values().toArray(frequencies[i]);
-//			}
-//			
-//			//currently frequencies are not primitive, should they be unboxed??
-			
-		}
+	public void buildFeatureList(int ngramLength){
 
-	public void computeDistanceMatrix(){
-		
-		double[][] dm = new double[frequencies.length][frequencies.length];
-		
-		for(int i=0; i < frequencies.length; i++){
-			for(int j=0; j < frequencies.length; j++){
+		//null tree if one already exists
+		tree = null;
+
+		//map of individual text ngram/counts
+		textNgramCount = new ArrayList<HashMap<String, Integer>>();
+		//map of all ngrams/zeroed counts
+		featureSet = new LinkedHashSet<String>();
+
+		for(Text t:tl.getTextList()){
+			//go back to integer??
+			HashMap<String, Integer> ngrams = new HashMap<String,Integer>();
+			ngrams = t.getNgrams(ngramLength);
+			//store ngrams/count for this text
+			textNgramCount.add(ngrams);
+
+			//add ngrams to list of all ngrams for merging
+			for(String s:ngrams.keySet()){
 				
-				if(i == j){
-					dm[i][j] = 0;
-					continue;
+				//add only if occurs more than once
+				if(ngrams.get(s) > 1){
+				featureSet.add(s);
+				}
+			}
+		}
+		System.out.println("WHAT");
+		//create frequency array of all ngrams for each text
+
+		frequencies = new double[tl.getTextListLength()][featureSet.size()];
+		System.out.println("WHAT");
+
+		int i = 0;
+		for(HashMap<String, Integer> text:textNgramCount){
+			int j = 0;
+			for(String s:featureSet){
+				if(text.get(s) != null){
+					frequencies[i][j++] = (double) text.get(s);
 				}
 				else{
-					
-					//OBVS THIS SHOULD BE JSD
-					dm[i][j] = 1;
+					frequencies[i][j++] = 0.0;
+				}
+			}
+			i++;
+		}
+	}
+
+	public DistanceMatrix computeDistanceMatrix(){
+
+		dm = new BasicSymmetricalDistanceMatrix(frequencies.length);
+
+		//double[][] dm = new double[frequencies.length][frequencies.length];
+
+		JensenShannonDivergence jsd = new JensenShannonDivergence();
+
+
+		for(int i=0; i < frequencies.length; i++){
+			for(int j=0; j < frequencies.length; j++){
+
+				if(i == j){
+					dm.setValue(i, j, 0.0);
+
+				}
+				else{
+					double distance = JensenShannonDivergence.computeDivergence(frequencies[i], frequencies[j]);
+					dm.setValue(i, j, distance);
 				}
 			}
 		}
-		int u = 99;
+
+		//System.out.println(dm.toString());
+
+		for(int i=0; i < tl.getTextListLength(); i++){
+			dm.setIdentifier(i, tl.getText(i).getTitle());
+		}
+
+		System.out.println(dm.toString());
+		return dm;
 
 	}
+
+	public void neighbourJoin(BasicSymmetricalDistanceMatrix dm){
+
+
+		NeighborJoining nj = NeighborJoining.createInstance();
+		tree = nj.execute(dm);
+		//System.out.print(tree.toNexus());
+		
+	}
+
+
+
+	//maybe change this??
+	public boolean isComplete(){
+		return complete;
+	}
+
+	public void formatTree(){
+
+		//if(tree != null){
+			System.out.println("HEY");
+			String treeData = tree.toNexus();
+			
+			
+			//File f = new File("out");
+			BufferedWriter writer = null;
+			try {
+				writer = new BufferedWriter( new FileWriter("out"));
+				writer.write(treeData);
+				writer.close();
+				//fw.close();
+				Nexus ns = new Nexus();
+				File f = new File("out");
+				TreeData[] td = ns.read(f);
+				treeOut = td[0];
+			
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}	
+		}
+
+	
+	public PhyloTree getTree(){
+		return treeOut;
+	}
+
 
 	@Override
 	protected Void doInBackground() throws Exception {
 
-		System.out.println("Uhhhhh?");
+		
 		while(!isCancelled()){
-			buildFeatureList(ngramLength);
-			computeDistanceMatrix();
-			this.cancel(true);
+		System.out.println("Getting features...");
+		buildFeatureList(ngramLength);
+		System.out.println("Computing distance matrix...");
+		computeDistanceMatrix();
+		System.out.println("Joining neighbours...");
+		neighbourJoin(dm);
+		System.out.println("Formatting tree...");
+		formatTree();
+		complete = true;
+		this.cancel(true);
 		}
-
-		System.out.println("Completed! Or cancelled. Whatevs");
-
 		return null;
 	}
-
-
-
-
-
 
 }
