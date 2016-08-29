@@ -53,7 +53,7 @@ public class FFP extends SwingWorker<Void, Void>{
 
 		//map of individual text ngram/counts
 		textNgramCount = new ArrayList<HashMap<String, Integer>>();
-		
+
 		//map of all ngrams/zeroed counts - initialise this in mergeFeatures() method??
 		featureSet = new LinkedHashSet<String>();
 
@@ -61,10 +61,10 @@ public class FFP extends SwingWorker<Void, Void>{
 			//store ngrams/count for this text
 			textNgramCount.add(getNgramCount(t));
 		}
-		
+
 		//get ngrams from all texts and merge them into a unified feature profile
 		featureSet = mergeFeatures();
-	
+		System.out.println(featureSet.size());
 		//create frequency array of all ngrams for each text
 		frequencies = getFeatureFrequencies();
 	}
@@ -73,16 +73,12 @@ public class FFP extends SwingWorker<Void, Void>{
 
 		dm = new BasicSymmetricalDistanceMatrix(frequencies.length);
 
-
 		JensenShannonDivergence jsd = new JensenShannonDivergence();
-		
 
 		for(int i=0; i < frequencies.length; i++){
 			for(int j=0; j < frequencies.length; j++){
-				
 				if(i == j){
 					dm.setValue(i, j, 0.0);
-
 				}
 				else{
 					double distance = jsd.getJSDDivergence(frequencies[i], frequencies[j]);
@@ -91,41 +87,37 @@ public class FFP extends SwingWorker<Void, Void>{
 			}
 		}
 
-		
 		//add identifiers
 		for(int i=0; i < tl.getTextListLength(); i++){
 			dm.setIdentifier(i, tl.getText(i).getTitle());
 		}
-
 		return dm;
-
 	}
 
 	public void neighbourJoin(BasicSymmetricalDistanceMatrix dm){
 
-
 		NeighborJoining nj = NeighborJoining.createInstance();
 		tree = nj.execute(dm);
-		
+
 	}
 
 	public HashMap<String, Integer> getNgramCount(Text t){
 		return t.getNgrams(ngramLength);
 	}
-	
+
 	public LinkedHashSet<String> mergeFeatures(){
 		for(HashMap<String, Integer> ngrams: textNgramCount){
-		for(String s:ngrams.keySet()){
-			
-			//add only if occurs more than once
-			if(ngrams.get(s) > 1){
-			featureSet.add(s);
+			for(String s:ngrams.keySet()){
+
+				//add only if occurs more than once
+				if(ngrams.get(s) > 1){
+					featureSet.add(s);
+				}
 			}
-		}
 		}
 		return featureSet;
 	}
-	
+
 	public double[][] getFeatureFrequencies(){
 		frequencies = new double[tl.getTextListLength()][featureSet.size()];
 
@@ -142,10 +134,9 @@ public class FFP extends SwingWorker<Void, Void>{
 			}
 			i++;
 		}
-		
 		return frequencies;
 	}
-	
+
 
 	//maybe change this??
 	public boolean isComplete(){
@@ -155,27 +146,24 @@ public class FFP extends SwingWorker<Void, Void>{
 	public void formatTree(){
 
 		//if(tree != null){
-			String treeData = tree.toNexus();
-			
-			
-			//File f = new File("out");
-			BufferedWriter writer = null;
-			try {
-				writer = new BufferedWriter( new FileWriter("out"));
-				writer.write(treeData);
-				writer.close();
-				//fw.close();
-				Nexus ns = new Nexus();
-				File f = new File("out");
-				TreeData[] td = ns.read(f);
-				treeOut = td[0];
-			
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}	
-		}
+		String treeData = tree.toNexus();
 
-	
+		BufferedWriter writer = null;
+		try {
+			writer = new BufferedWriter( new FileWriter("out"));
+			writer.write(treeData);
+			writer.close();
+			Nexus ns = new Nexus();
+			File f = new File("out");
+			TreeData[] td = ns.read(f);
+			treeOut = td[0];
+
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}	
+	}
+
+
 	public PhyloTree getTree(){
 		return treeOut;
 	}
@@ -184,18 +172,15 @@ public class FFP extends SwingWorker<Void, Void>{
 	@Override
 	protected Void doInBackground() throws Exception {
 
-		
+
 		while(!isCancelled()){
 
-		buildFeatureList(ngramLength);
-		
-		computeDistanceMatrix();
-		
-		neighbourJoin(dm);
-		
-		formatTree();
-		complete = true;
-		this.cancel(true);
+			buildFeatureList(ngramLength);
+			computeDistanceMatrix();
+			neighbourJoin(dm);
+			formatTree();
+			complete = true;
+			this.cancel(true);
 		}
 		return null;
 	}

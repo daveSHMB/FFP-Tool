@@ -1,17 +1,16 @@
 import java.awt.CardLayout;
-
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-
-
+import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+
 
 
 
@@ -21,6 +20,7 @@ public class FFPController implements ActionListener {
 	TextList tl;
 	CardLayout cl;
 	FFP ffp;
+	File workingDirectory;
 	
 
 	public FFPController(GUI gui, TextList tl){
@@ -28,15 +28,12 @@ public class FFPController implements ActionListener {
 		this.tl = tl;
 	}
 
-
 	@Override
 	public void actionPerformed(ActionEvent ae) {
 		// TODO Auto-generated method stub
 
-
 		if(ae.getActionCommand().equals("Add text(s)")){
 			addText();
-			System.out.println("ADD!");
 		}
 		else if(ae.getActionCommand().equals("Remove text(s)")){
 			removeText();
@@ -44,72 +41,24 @@ public class FFPController implements ActionListener {
 		else if(ae.getActionCommand().equals("Edit author/title")){
 			editText();
 		}
-		else if(ae.getActionCommand().equals("Options")){
-			gui.switchCard(GUI.OPTIONSPANEL);
-		}
 		else if(ae.getActionCommand() == "Confirm"){
-						
-						if(tl.getTextList().isEmpty()){
-							
-							JOptionPane.showMessageDialog(gui, "Please add texts for analysis.");
-							return;
-						}
-						else if(tl.getTextList().size() == 1){
-							JOptionPane.showMessageDialog(gui, "Please add at least two texts for comparison.");
-							return;
-						}
-						
-						gui.switchCard(GUI.PROCESSINGPANEL);
-						gui.processingStart();
-						
-						ffp = new FFP(tl, gui.getNgramValue());
-						ffp.execute();
-						
-						//test periodically if FFP has completed
-						new Thread(){
-							@Override
-							public void run() {
-								while (!ffp.isComplete()){
-									try {
-										Thread.sleep(1000);
-									} catch (InterruptedException e) {
-										// TODO Auto-generated catch block
-										e.printStackTrace();
-									}
-								}
-								//setup and display output
-								gui.setupFFPOutput(ffp.getTree());
-							}
-						}.start();
+			runFFP();	
 		}
-		//
-		//		else if(ae.getActionCommand() == "options"){
-		//			gui.switchCard(GUI.OPTIONSPANEL);
-		//			//this.setLocationRelativeTo(null);
-		//		}
-		//		else if(ae.getActionCommand() == "confirmOptions"){
-		//			gui.switchCard(GUI.TEXTSETUPPANEL);
-		//		}
-		//		else if(ae.getActionCommand() == "cancelProcess"){
-		//			ffp.cancel(true);
-		//			//t.cancel(true);
-		//			gui.switchCard(GUI.TEXTSETUPPANEL);
-		//		}
-		//		else if(ae.getActionCommand() == "Back"){
-		//			cl.show(cardHolder, TEXTSETUPPANEL);
-		//		}
-		//		else if(ae.getSource() == ffpStyle){
-		//			output.remove(treeView.getScrollPane());
-		//			resultsPanel.remove(outputOptions);
-		//			treeView = getTreePanel();
-		//			output.add(treeView.getScrollPane());
-		//			resultsPanel.add(outputOptions);
-		//			pack();
-		//			resultsPanel.revalidate();
-		//			resultsPanel.repaint();		
-		//		}
-		//		else if(ae.getSource() == save){
-		//			saveImage();
+		else if(ae.getActionCommand() == "Cancel"){
+			ffp.cancel(true);
+			gui.progressLabelStop();
+			gui.switchCard(GUI.TEXTSETUPPANEL);
+		}
+		else if(ae.getActionCommand().equals("FFP style")){
+			gui.refreshOutput();	
+		}
+		else if(ae.getActionCommand().equals("Save image")){
+			saveImage();
+		}
+		else if(ae.getActionCommand().equals("Return to text setup")){
+			gui.switchCard(GUI.TEXTSETUPPANEL);
+		}
+	
 	}
 
 
@@ -117,11 +66,17 @@ public class FFPController implements ActionListener {
 
 		JFileChooser textSelect = new JFileChooser();
 		textSelect.setMultiSelectionEnabled(true);
+		if(workingDirectory != null){
+			textSelect.setCurrentDirectory(workingDirectory);
+		}
+		
 		int returnVal = textSelect.showOpenDialog(gui);
 
 		if (returnVal == JFileChooser.APPROVE_OPTION){
 			File[] files = textSelect.getSelectedFiles();
 
+			workingDirectory = files[0].getParentFile();
+			
 			for(File f: files){
 				try {
 					BufferedReader reader = new BufferedReader(new FileReader(f));
@@ -151,7 +106,12 @@ public class FFPController implements ActionListener {
 	public void removeText(){
 
 		int[] selected = gui.getSelectedTexts();
-
+		
+		if(tl.getTextListLength() == 0){
+			JOptionPane.showMessageDialog(gui, "No texts to remove");
+			return;
+		}
+		
 		if(selected.length == 0){
 			JOptionPane.showMessageDialog(gui, "Please select text(s) to remove.");
 			return;
@@ -188,32 +148,49 @@ public class FFPController implements ActionListener {
 		}
 	}
 
+	public void runFFP(){
+		if(tl.getTextList().isEmpty()){
+
+			JOptionPane.showMessageDialog(gui, "Please add texts for analysis.");
+			return;
+		}
+		else if(tl.getTextList().size() == 1){
+			JOptionPane.showMessageDialog(gui, "Please add at least two texts for comparison.");
+			return;
+		}
+
+		gui.switchCard(GUI.PROCESSINGPANEL);
+		gui.progressLabelStart();
+
+		ffp = new FFP(tl, gui.getNgramValue());
+		ffp.execute();
+
+		//test periodically if FFP has completed
+		new Thread(){
+			@Override
+			public void run() {
+				while (!ffp.isComplete()){
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+				//setup and display output
+				gui.setupFFPOutput(ffp.getTree());
+				gui.switchCard(GUI.FFPRESULTSPANEL);
+			}
+		}.start();
+	}
 
 	public void saveImage(){
-		//		treeView.trans.setCoordinateRect(treeView.getBBox());
-		//	
-		//		treeView.fitGraphToWindow();
-		//		//treeView.centerGraph();
-
-		//		Rectangle2D rect = treeView.getVisibleRect();
-		//		
-		//		int x = (int)rect.getX();
-		//		int y = (int)rect.getY();
-		//		
-		//		//get scrollbar height and width
-		//		int scrollbarWidthHeight = ((Integer)UIManager.get("ScrollBar.width")).intValue(); 
-		//		
-		//		BufferedImage image = new BufferedImage(1000 - scrollbarWidthHeight, 800 - scrollbarWidthHeight, BufferedImage.TYPE_INT_ARGB);
-		//		Graphics g = image.getGraphics();
-		//		g.translate(-x, -y);
-		//		g.setClip(rect);
-		//		g.fillRect(x, y, (int)rect.getWidth(), (int)rect.getHeight());
-		//		treeView.getPanel().paint(g);
-		//		 try {
-		//		        ImageIO.write(image, "png", new File("dicks.png"));
-		//		    } catch (IOException ex) {
-		//		        
-		//		   }
+		BufferedImage image = gui.getOutputGraphics();
+		try {
+			ImageIO.write(image, "png", new File("dicks.png"));
+		} catch (IOException ex) {
+			
+		}
 	}
 }
 
