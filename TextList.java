@@ -1,6 +1,7 @@
 import java.util.ArrayList;
+import java.util.Observable;
 
-public class TextList {
+public class TextList extends Observable {
 
 	private ArrayList<Text> textList;
 	
@@ -13,18 +14,36 @@ public class TextList {
 	public void addText(String text, String author, String title){
 		
 		Text newText = new Text(text, author, title);
-		textList.add(newText);				
+		textList.add(newText);
+		setChanged();
+		notifyObservers();
 	}
 	
 	public void addText(String title, String text){
 		
 		Text newText = new Text(title, text);
 		textList.add(newText);
+		setChanged();
+		notifyObservers();
 	}
 	
 	public void removeText(int index){
 		textList.remove(index);
+		setChanged();
+		notifyObservers();
 		}
+	
+	public void setAuthor(int index, String author){
+		textList.get(index).setAuthor(author);
+		setChanged();
+		notifyObservers();
+	}
+	
+	public void setTitle(int index, String title){
+		textList.get(index).setAuthor(title);
+		setChanged();
+		notifyObservers();
+	}
 	
 	public Text getText(int index){
 		return textList.get(index);

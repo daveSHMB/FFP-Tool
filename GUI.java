@@ -13,7 +13,6 @@ import java.awt.GridLayout;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
@@ -21,12 +20,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-
+import java.util.Observable;
+import java.util.Observer;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.*;
-
 
 
 import jloda.graphview.*;
@@ -34,15 +33,15 @@ import jloda.phylo.*;
 
 
 
-public class GUI extends JFrame implements ActionListener{
+public class GUI extends JFrame implements ActionListener, Observer{
 
 	private JPanel cardHolder, setupOptionsCard, textSetupCard, processingCard, FFPResultsCard, textSetup, textOperations, finalise, editAndConfirm, optionsPanel,
-	PCASettings, FFPSettings, editOptions, resultsPanel, outputOptions, output;
+	FFPSettings, editOptions, resultsPanel, outputOptions, output;
 	private JList<String> texts;
-	private Border textTitle, PCASettingsBorder, FFPSettingsBorder;
+	private Border textTitle, optionsPanelBorder;
 	private JLabel addText, ngramLengthLbl, timeLabel;
 	private JButton add, remove, edit, confirm, options, confirmOptions, cancelProcess, resultsBack, save;
-	private JTextField ngramLength;
+	private JSpinner ngramLength;
 	private JFileChooser textSelect;
 	private JComboBox<String> ffpStyle;
 	private JScrollPane treeDisplay;
@@ -52,6 +51,8 @@ public class GUI extends JFrame implements ActionListener{
 
 	private ProcessTimer t;
 	private FFP ffp;
+	
+	private PhyloTree tree;
 
 	private IGraphDrawer treeDrawer;
 
@@ -59,22 +60,24 @@ public class GUI extends JFrame implements ActionListener{
 	private String[] ffpOutputOpts = {"Radial", "Parallel", "Circular", "Angled"};
 
 
-
+	FFPController con;
 
 	//Do these need to be static???
-	private final static String TEXTSETUPPANEL = "Tab for text addition";
-	private final static String OPTIONSPANEL = "Tab for editing options";
-	private final static String PROCESSINGPANEL = "Tab shown while data processing";
-	private final static String FFPRESULTSPANEL = "Tab shown when processing complete";
+	public final static String TEXTSETUPPANEL = "Tab for text addition";
+	public final static String OPTIONSPANEL = "Tab for editing options";
+	public final static String PROCESSINGPANEL = "Tab shown while data processing";
+	public final static String FFPRESULTSPANEL = "Tab shown when processing complete";
 
 	//move the below declarations???
 	private TextList tl = new TextList();
 	private Border loweredEtched = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
 
 	public GUI(){
-
+		
+		
 		super("FFP Tool 0.1");
-
+		con = new FFPController(this, tl);
+		tl.addObserver(this);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		layoutComponents();
 		add(cardHolder);
@@ -115,8 +118,10 @@ public class GUI extends JFrame implements ActionListener{
 	}
 
 
-	public void setupFFPOutput(){
-
+	public void setupFFPOutput(PhyloTree tree){
+		
+		this.tree = tree;
+		
 		FFPResultsCard = new JPanel();
 		FFPResultsCard.add(FFPresults());
 		cardHolder.add(FFPResultsCard, FFPRESULTSPANEL);
@@ -129,27 +134,33 @@ public class GUI extends JFrame implements ActionListener{
 
 	public JPanel textSetupPanel(){
 		textSetup = new JPanel(new BorderLayout());
+		textSetup.setBorder(new EmptyBorder(20, 20, 20, 20));
 		
 		textTitle = BorderFactory.createTitledBorder(loweredEtched, "1. Add texts for comparison");
 		textSetup.setBorder(textTitle);
-		texts = new JList<String>(tl.getTextDetails());
+		texts = new JList<String>();
 		texts.setVisibleRowCount(13);
 		JScrollPane textsPane = new JScrollPane(texts);
 		textsPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 		textsPane.setPreferredSize(new Dimension(100,200));
-
-		addText = new JLabel("Add texts for analysis. Accepted formats are X, Y, Z.");
+		
+		String addTextInfo = "<html><p></p><center><p>Texts should be stored as plain .txt files. For a more accurate</p> <p>analysis "
+				+ " any titles, chapter markers or additional content </p><p>such as introductions or footnotes "
+				+ "should first be removed.</p></center></html>";
+		
+		addText = new JLabel(addTextInfo);
+	
 
 		editAndConfirm = new JPanel(new GridLayout(2,1));
 
 		textOperations = new JPanel(new FlowLayout());
 
 		add = new JButton("Add text(s)");
-		add.addActionListener(this);
+		add.addActionListener(con);
 		remove = new JButton("Remove text(s)");
-		remove.addActionListener(this);
+		remove.addActionListener(con);
 		edit = new JButton("Edit author/title");
-		edit.addActionListener(this);
+		edit.addActionListener(con);
 		textOperations.add(add);
 
 		textOperations.add(remove);
@@ -157,9 +168,9 @@ public class GUI extends JFrame implements ActionListener{
 
 		finalise = new JPanel(new FlowLayout());
 		confirm = new JButton("Confirm");
-		confirm.addActionListener(this);
+		confirm.addActionListener(con);
 		options = new JButton("Options");
-		options.addActionListener(this);
+		options.addActionListener(con);
 		finalise.add(options);
 		finalise.add(confirm);
 
@@ -176,27 +187,37 @@ public class GUI extends JFrame implements ActionListener{
 	public JPanel setupOptions(){
 
 
-		optionsPanel = new JPanel(new BorderLayout());
+		optionsPanel = new JPanel(new BorderLayout(1,6));
+		
+		//FFPSettings = new JPanel(new GridLayout(3,1));
+		optionsPanelBorder = BorderFactory.createTitledBorder(loweredEtched, "Edit Analysis Parameters");
+		optionsPanel.setBorder(optionsPanelBorder);
+		
+		String ngramInfo = "<html><p></p><center><p>Ngrams are strings of characters generated from input</p><p>texts. "
+				+ "The occurrence of each feature is</p><p>counted and the divergence of each count is measured.</p> "
+				+ "<p>Optimal ngram length varies from text to text though most </p><p>often falls between 9 and 10</p></center></html>";
+		
+		
 		
 		FFPSettings = new JPanel(new FlowLayout());
-		FFPSettingsBorder = BorderFactory.createTitledBorder(loweredEtched, "FFP Options");
-		FFPSettings.setBorder(FFPSettingsBorder);
 		ngramLengthLbl = new JLabel("Enter ngram length:");
 		FFPSettings.add(ngramLengthLbl);
-		ngramLength = new JTextField(20);
+		
+		SpinnerModel ngramModel = new SpinnerNumberModel(9, 2, 20, 1); 
+		ngramLength = new JSpinner(ngramModel);
 		FFPSettings.add(ngramLength);
 
 		editOptions = new JPanel(new GridLayout(2,1));
 		//editOptions.add(PCASettings);
 		editOptions.add(FFPSettings);
-
-		JPanel confirmOptionsPanel = new JPanel();
-		confirmOptions = new JButton("Confirm");
+		
+		
+		confirmOptions = new JButton("Confirm and Begin FFP");
 		confirmOptions.addActionListener(this);
-		confirmOptionsPanel.add(confirmOptions);
-
-		optionsPanel.add("North", editOptions);
-		optionsPanel.add("Center", confirmOptionsPanel);
+		
+		optionsPanel.add(new JLabel(ngramInfo));
+		optionsPanel.add(editOptions);
+		optionsPanel.add(confirmOptions);
 
 
 		//YOU CAN CHANGE DIMENSIONS LIKE THIS WOOOOOOP
@@ -273,9 +294,12 @@ public class GUI extends JFrame implements ActionListener{
 
 	public PhyloGraphView getTreePanel(){
 
-		PhyloTree tree = ffp.getTree();
-	
-		treeView = new PhyloGraphView(tree, 1000 - 17, 800 - 17);
+		//PhyloTree tree = ffp.getTree();
+		
+		
+		
+		
+		treeView = new PhyloGraphView(tree, 800 - 17, 600 - 17);
 		treeView.getScrollPane().setPreferredSize(new Dimension(1000,800));
 
 		String style = ffpOutputOpts[ffpStyle.getSelectedIndex()];
@@ -285,6 +309,7 @@ public class GUI extends JFrame implements ActionListener{
 			break;
 		case "Parallel":
 			treeDrawer = new TreeDrawerParallel(treeView, tree);
+			treeView.setSize(new Dimension(700, 200));
 			break;
 		case "Circular":
 			treeDrawer = new TreeDrawerCircular(treeView, tree);
@@ -292,13 +317,16 @@ public class GUI extends JFrame implements ActionListener{
 		case "Angled":
 			treeDrawer = new TreeDrawerAngled(treeView, tree);
 		}
+		
 
-
-		treeDrawer.computeEmbedding(false);
+		treeDrawer.computeEmbedding(true);
+		
 		treeView.setGraphDrawer(treeDrawer);
 
 		treeView.setCanvasColor(Color.WHITE);
 		treeView.selectAllEdges(true);
+		
+		//treeView.setLabelVisibleSelectedEdges(true);
 		treeView.setLineWidthSelectedEdges((byte) 3.6);
 		treeView.selectAllEdges(false);
 		
@@ -313,24 +341,6 @@ public class GUI extends JFrame implements ActionListener{
 		//tv.setAllowRotation(true);
 		treeView.setAllowEdit(true);
 		
-
-//		treeView.getScrollPane().addComponentListener(new ComponentAdapter() {
-//			public void componentResized(ComponentEvent event) {
-//				{
-//					if (treeView.getScrollPane().getSize().getHeight() > 600 && treeView.getScrollPane().getSize().getWidth() > 600)
-//						treeView.fitGraphToWindow();
-//					else
-//						treeView.trans.fireHasChanged();
-//				}
-//			}
-//		});
-
-		
-		
-		//
-	
-		//
-		
 		
 		//FIX WINDOW CENTERING
 		treeView.trans.setCoordinateRect(treeView.getBBox());
@@ -339,59 +349,43 @@ public class GUI extends JFrame implements ActionListener{
 
 		//treeView.trans.fitToSize(new Dimension(800, 600));
 		
-		treeView.trans.fireHasChanged();
+		//treeView.trans.fireHasChanged();
 		
 		
 		return treeView;
 
 
 	}
+	
+	public void switchCard(String cardName){
+		cl.show(cardHolder, cardName);
+	}
+	
+	public int getNgramValue(){
+		
+		//if blank use default value - this will change when I DEFINITELY add input validation
+		if(ngramLength.getValue().equals("")){
+			return 5;
+		}
+		return (int)ngramLength.getValue();
+	}
+	
+	public String getSelectedOutputType(){
+		return ffpOutputOpts[ffpStyle.getSelectedIndex()];
+	}
+	
+	public int[] getSelectedTexts(){
+		return texts.getSelectedIndices();
+	}
+	
+	public void processingStart(){
+		t = new ProcessTimer();
+		t.execute();
+	}
 
 	public void actionPerformed(ActionEvent ae) {
 
-		if(ae.getSource() == add){
-			addText();
-		}
-		else if(ae.getSource() == remove){
-			removeText();
-		}
-		else if(ae.getSource() == edit){
-			editText();
-		}
-		else if(ae.getSource() == confirm){
-
-			cl.show(cardHolder, PROCESSINGPANEL);
-			t = new ProcessTimer();
-			t.execute();
-
-			if(!ngramLength.getText().equals("")){
-				ffp = new FFP(tl, (Integer.parseInt(ngramLength.getText())));
-			}
-			else{
-				ffp = new FFP(tl, 5);
-			}
-
-			ffp.execute();
-			
-
-			new Thread(){
-				@Override
-				public void run() {
-					while (!ffp.isComplete()){
-						try {
-							Thread.sleep(1000);
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
-					//setup and display output
-					setupFFPOutput();
-				}
-			}.start();
-		}
-
-		else if(ae.getSource() == options){
+		if(ae.getSource() == options){
 			cl.show(cardHolder, OPTIONSPANEL);
 			//this.setLocationRelativeTo(null);
 		}
@@ -421,76 +415,6 @@ public class GUI extends JFrame implements ActionListener{
 		}
 	}
 
-
-	public void addText(){
-		textSelect = new JFileChooser();
-		textSelect.setMultiSelectionEnabled(true);
-		int returnVal = textSelect.showOpenDialog(this);
-
-		if (returnVal == JFileChooser.APPROVE_OPTION){
-			File[] files = textSelect.getSelectedFiles();
-
-			for(File f: files){
-				try {
-					BufferedReader reader = new BufferedReader(new FileReader(f));
-					StringBuilder sb = new StringBuilder();
-
-					String line = reader.readLine();
-					while(line != null){
-						sb.append(line);
-						line = reader.readLine();
-					}
-
-					reader.close();
-					//uses filename by default
-					tl.addText(f.getName(), sb.toString().toLowerCase());
-					texts.setListData(tl.getTextDetails());
-
-				} catch (FileNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-		}
-	}
-
-	public void removeText(){
-
-		int[] selected = texts.getSelectedIndices();
-
-		for(int i=selected.length - 1; i >= 0; i--){
-			tl.removeText(selected[i]);
-		}
-
-		texts.setListData(tl.getTextDetails());
-
-	}
-
-	public void editText(){
-
-		if(texts.getSelectedIndex() != -1){
-
-			String author = (String)JOptionPane.showInputDialog(this, "Enter author's name (if known");
-			String title = (String)JOptionPane.showInputDialog(this, "Enter text title (if known)");
-
-			if(author != null){
-				tl.getText(texts.getSelectedIndex()).setAuthor(author);
-			}
-
-			if(title != null){
-				tl.getText(texts.getSelectedIndex()).setTitle(title);
-			}
-
-			texts.setListData(tl.getTextDetails());
-
-		}
-		else{
-			JOptionPane.showMessageDialog(this, "First select a text from the list above");
-		}
-	}
 	
 	
 	public void saveImage(){
@@ -537,6 +461,16 @@ public class GUI extends JFrame implements ActionListener{
 			}
 			
 			return null;		
+		}
+	}
+
+
+	@Override
+	public void update(Observable obs, Object obj) {
+
+		if(obs instanceof TextList){
+			System.out.println("Alright");
+			texts.setListData(tl.getTextDetails());
 		}
 	}
 
