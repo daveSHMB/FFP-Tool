@@ -10,18 +10,12 @@ public class TextList extends Observable {
 		textList = new ArrayList<Text>();
 	}
 	
-	//get rid of this?? User can edit author details later
-	public void addText(String text, String author, String title){
-		
-		Text newText = new Text(text, author, title);
-		textList.add(newText);
-		setChanged();
-		notifyObservers();
-	}
-	
+
 	public void addText(String title, String text){
 		
-		Text newText = new Text(title, text);
+		String[] titleFile = title.split("[.]");
+		
+		Text newText = new Text(titleFile[0], text);
 		textList.add(newText);
 		setChanged();
 		notifyObservers();

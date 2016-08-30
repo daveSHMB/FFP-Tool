@@ -40,10 +40,10 @@ import jloda.phylo.*;
 public class GUI extends JFrame implements Observer{
 
 	private JPanel cardHolder, setupOptionsCard, textSetupCard, processingCard, FFPResultsCard, textSetup, textOperations, finalise, editAndConfirm, optionsPanel,
-	FFPSettings, treePanel, resultsPanel, outputPanel, output, ngramPanel, outputStylePanel, displayOptions, treeHelpPanel;
+	resultsPanel, outputPanel, output, ngramPanel, outputStylePanel, displayOptions, processingPanel;
 	private JList<String> texts;
 	private Border textTitle, optionsPanelBorder;
-	private JLabel addText, ngramLengthLbl, timeLabel;
+	private JLabel addText, ngramLengthLbl, progressLabel;
 	private JButton add, remove, edit, confirm, options, confirmOptions, cancelProcess, resultsBack, save;
 	JButton textHelp, treeHelp;
 	JButton ngramHelp;
@@ -53,7 +53,7 @@ public class GUI extends JFrame implements Observer{
 	private PhyloGraphView treeView; 
 
 	private CardLayout cl;
-	private ProgressLabel pl;
+	//private ProgressLabel pl;
 	private PhyloTree phyloTree, cladoTree;
 	private IGraphDrawer treeDrawer;
 
@@ -81,7 +81,7 @@ public class GUI extends JFrame implements Observer{
 		tl.addObserver(this);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		layoutComponents();
-		add(cardHolder);
+		getContentPane().add(cardHolder);
 		pack();
 		setLocationRelativeTo(null);
 		setResizable(false);
@@ -103,6 +103,7 @@ public class GUI extends JFrame implements Observer{
 		textSetupCard.add(setupDashboard());
 
 		processingCard = new JPanel();
+		processingCard.setLayout(new BorderLayout(0, 0));
 		processingCard.add(processing());
 
 		cardHolder = new JPanel(new CardLayout());
@@ -222,9 +223,6 @@ public class GUI extends JFrame implements Observer{
 		//ensures all tooltips stay on screen for a very long duration
 		ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
 
-
-
-
 		ngramPanel.add(new JLabel("Edit ngram size: "));
 		ngramPanel.add(ngramLength);
 		ngramPanel.add(ngramHelp);
@@ -235,25 +233,29 @@ public class GUI extends JFrame implements Observer{
 	}
 
 	public JPanel processing(){
-		optionsPanel = new JPanel(new GridLayout(3,1));
+		processingPanel = new JPanel(new GridLayout(3,1));
 
-		optionsPanel.add(new JLabel("Processing, may take some time"));
-
-		//TODO TIME LABEL????
-		timeLabel = new JLabel("");
+		processingPanel.add(new JLabel());
+		//processingPanel.add(new JLabel());
+		JPanel progressLabelPnl = new JPanel(new FlowLayout());
+		progressLabel = new JLabel("Processing FFP");
+		progressLabelPnl.add(progressLabel);
+		JPanel cancelPanel = new JPanel(new FlowLayout());
 		cancelProcess = new JButton("Cancel");
 		cancelProcess.addActionListener(con);
-		optionsPanel.add(timeLabel);
+		cancelPanel.add(cancelProcess);
+		
+		
+		processingPanel.add(progressLabelPnl);
+		processingPanel.add(cancelPanel);
 
-		optionsPanel.add(cancelProcess);
 
-
-		return optionsPanel;
+		return processingPanel;
 	}
 
 	public JPanel FFPresults(){
 
-		outputPanel = new JPanel(new GridLayout(18,1));
+		outputPanel = new JPanel(new GridLayout(16,1));
 
 
 		outputStylePanel = new JPanel(new FlowLayout());
@@ -274,7 +276,9 @@ public class GUI extends JFrame implements Observer{
 		treeHelp.setBorderPainted(false);
 		treeHelp.setOpaque(false);
 		treeHelp.setContentAreaFilled(false);
-		treeHelp.setToolTipText("YADDA YADDA CLADO PHYLO ETC");
+		String treeHelpText = "<html><p>Phylograms show the true relative distance between branches.</p><p>"
+				+ "Cladograms equalise the distances of each branch, which</p><p>often makes visualisation easier</p></html>";
+		treeHelp.setToolTipText(treeHelpText);
 
 
 		outputStylePanel.add(displayOptions);
@@ -302,19 +306,15 @@ public class GUI extends JFrame implements Observer{
 		output = new JPanel(new BorderLayout());
 		output.add(treeView.getScrollPane(), BorderLayout.CENTER);
 
-
-
+		
 		resultsPanel.add(output);
 		resultsPanel.add(outputPanel);
-
-
 
 		return resultsPanel;
 
 	}
 
 	public PhyloGraphView getTreePanel(){
-
 
 		String style = ffpOutputOpts[ffpStyle.getSelectedIndex()];
 		if(style.contains("Phylo")){
@@ -323,8 +323,12 @@ public class GUI extends JFrame implements Observer{
 		else{
 			treeView = new PhyloGraphView(cladoTree, 750, 550);
 		}
-
-		treeView.getScrollPane().setPreferredSize(new Dimension(1095, 890));
+		
+		treeView.getScrollPane().setPreferredSize(new Dimension(1000, 800));
+		treeView.getScrollPane().setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
+		treeView.getScrollPane().setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+		//treeView.getScrollPane().getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
+		
 
 		switch(style){
 		case "Radial Phylogram":
@@ -352,10 +356,11 @@ public class GUI extends JFrame implements Observer{
 			treeDrawer = new TreeDrawerAngled(treeView, cladoTree);
 		}
 
-
 		treeDrawer.computeEmbedding(true);
 
 		treeView.setGraphDrawer(treeDrawer);
+		
+		
 		treeView.setCanvasColor(Color.WHITE);
 		treeView.selectAllEdges(true);
 
@@ -375,7 +380,7 @@ public class GUI extends JFrame implements Observer{
 
 		treeView.trans.setCoordinateRect(treeView.getBBox());
 		treeView.fitGraphToWindow();
-
+		//treeView.centerGraph();
 		return treeView;
 	}
 
@@ -395,8 +400,7 @@ public class GUI extends JFrame implements Observer{
 		output.add(treeView.getScrollPane());
 		resultsPanel.add(outputPanel);
 		pack();
-		resultsPanel.revalidate();
-		resultsPanel.repaint();	
+		//treeView.resetViews();
 	}
 
 	public void switchCard(String cardName){
@@ -437,15 +441,6 @@ public class GUI extends JFrame implements Observer{
 		return image;
 	}
 
-	public void progressLabelStart(){
-		pl = new ProgressLabel();
-		pl.execute();
-	}
-
-	public void progressLabelStop(){
-		pl.cancel(true);
-	}
-
 	public void centreScrollPane(JScrollPane pane){
 		Rectangle viewable = pane.getViewport().getViewRect();
 		Dimension size = pane.getViewport().getViewSize();
@@ -465,22 +460,10 @@ public class GUI extends JFrame implements Observer{
 		}
 	}
 
-	private class ProgressLabel extends SwingWorker<Void,Void> {
-
-		protected Void doInBackground() throws Exception {
-
-			String processing = "Processing...";
-
-			while(!isCancelled()){
-
-				for(int i = 10; i <= processing.length(); i++){
-					timeLabel.setText(processing.substring(0, i));
-					Thread.sleep(500);
-				}
-			}
-
-			return null;		
-		}
+	public JLabel getProgressLabel(){
+		return progressLabel;
 	}
+	
+	
 
 }

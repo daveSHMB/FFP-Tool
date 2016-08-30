@@ -1,8 +1,7 @@
 import java.awt.CardLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
+
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
@@ -13,9 +12,8 @@ import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileNameExtensionFilter;
-
-
 
 
 public class FFPController implements ActionListener {
@@ -25,7 +23,7 @@ public class FFPController implements ActionListener {
 	CardLayout cl;
 	FFP ffp;
 	File workingDirectory;
-
+	ExecuteFFP exec;
 
 	public FFPController(GUI gui, TextList tl){
 		this.gui = gui;
@@ -50,7 +48,7 @@ public class FFPController implements ActionListener {
 		}
 		else if(ae.getActionCommand() == "Cancel"){
 			ffp.cancel(true);
-			gui.progressLabelStop();
+			exec.cancel(true);
 			gui.switchCard(GUI.TEXTSETUPPANEL);
 		}
 		else if(ae.getActionCommand().equals("FFP style")){
@@ -62,7 +60,6 @@ public class FFPController implements ActionListener {
 		else if(ae.getActionCommand().equals("Return to text setup")){
 			gui.switchCard(GUI.TEXTSETUPPANEL);
 		}
-
 	}
 
 
@@ -127,7 +124,6 @@ public class FFPController implements ActionListener {
 		for(int i=selected.length - 1; i >= 0; i--){
 			tl.removeText(selected[i]);
 		}
-
 	}
 
 	public void editText(){
@@ -167,29 +163,30 @@ public class FFPController implements ActionListener {
 		}
 
 		gui.switchCard(GUI.PROCESSINGPANEL);
-		gui.progressLabelStart();
+		exec = new ExecuteFFP();
+		exec.execute();
 
-		ffp = new FFP(tl, gui.getNgramValue());
-		ffp.execute();
+
 
 		//test periodically if FFP has completed
-		new Thread(){
-			@Override
-			public void run() {
-				while (!ffp.isComplete()){
-					try {
-						Thread.sleep(1000);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-				//setup and display output
-				gui.setupFFPOutput(ffp.getTree());
-				gui.switchCard(GUI.FFPRESULTSPANEL);
-			}
-		}.start();
+		//		new Thread(){
+		//			@Override
+		//			public void run() {
+		//				while (!ffp.isComplete()){
+		//					try {
+		//						ffp.getStatus();
+		//						//gui.setProgressLabel(ffp.getStatus());
+		//						Thread.sleep(1000);
+		//					} catch (InterruptedException e) {
+		//						// TODO Auto-generated catch block
+		//						e.printStackTrace();
+		//					}
+		//				}
+		//setup and display output
+
 	}
+	//	}.start();
+	//}
 
 	public void saveImage(){
 
@@ -197,23 +194,50 @@ public class FFPController implements ActionListener {
 		saveFileChooser.setFileFilter(new FileNameExtensionFilter("png", "png"));
 		saveFileChooser.setAcceptAllFileFilterUsed(false);
 
-
 		int returnVal = saveFileChooser.showSaveDialog(gui);
 
 		if(returnVal == JFileChooser.APPROVE_OPTION){
-			
-			File out = saveFileChooser.getSelectedFile();
-			String fn = saveFileChooser.getSelectedFile().getAbsolutePath() + ".png";
-	
 
+			String fn = saveFileChooser.getSelectedFile().getAbsolutePath() + ".png";
 
 			BufferedImage image = gui.getOutputGraphics();
-			
+
 			try {
 				ImageIO.write(image, "png", new File(fn));
 			} catch (IOException ex) {
 
 			}
+		}
+	}
+
+	private class ExecuteFFP extends SwingWorker<Void,Void> {
+
+		protected Void doInBackground() throws Exception {
+
+			JLabel progress = gui.getProgressLabel();
+			String current = "Preparing FFP";
+			ffp = new FFP(tl, gui.getNgramValue());
+			ffp.execute();
+
+			while(!isCancelled()){
+				while(!ffp.isComplete()){
+					if(current.endsWith("...")){
+						current = ffp.getStatus();
+					}
+					else{
+						current += ".";
+					}
+					progress.setText(current);
+
+					Thread.sleep(500);
+
+				}
+				this.cancel(true);
+			}
+			gui.setupFFPOutput(ffp.getTree());
+			gui.switchCard(GUI.FFPRESULTSPANEL);
+
+			return null;		
 		}
 	}
 }
