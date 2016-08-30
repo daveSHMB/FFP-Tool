@@ -1,6 +1,8 @@
 import java.awt.CardLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
@@ -9,7 +11,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 
 
@@ -21,7 +25,7 @@ public class FFPController implements ActionListener {
 	CardLayout cl;
 	FFP ffp;
 	File workingDirectory;
-	
+
 
 	public FFPController(GUI gui, TextList tl){
 		this.gui = gui;
@@ -38,7 +42,7 @@ public class FFPController implements ActionListener {
 		else if(ae.getActionCommand().equals("Remove text(s)")){
 			removeText();
 		}
-		else if(ae.getActionCommand().equals("Edit author/title")){
+		else if(ae.getActionCommand().equals("Edit text name")){
 			editText();
 		}
 		else if(ae.getActionCommand() == "Confirm"){
@@ -58,25 +62,28 @@ public class FFPController implements ActionListener {
 		else if(ae.getActionCommand().equals("Return to text setup")){
 			gui.switchCard(GUI.TEXTSETUPPANEL);
 		}
-	
+
 	}
+
 
 
 	public void addText(){
 
 		JFileChooser textSelect = new JFileChooser();
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("Text file", "txt");
+		textSelect.setFileFilter(filter);
 		textSelect.setMultiSelectionEnabled(true);
 		if(workingDirectory != null){
 			textSelect.setCurrentDirectory(workingDirectory);
 		}
-		
+
 		int returnVal = textSelect.showOpenDialog(gui);
 
 		if (returnVal == JFileChooser.APPROVE_OPTION){
 			File[] files = textSelect.getSelectedFiles();
 
 			workingDirectory = files[0].getParentFile();
-			
+
 			for(File f: files){
 				try {
 					BufferedReader reader = new BufferedReader(new FileReader(f));
@@ -106,12 +113,12 @@ public class FFPController implements ActionListener {
 	public void removeText(){
 
 		int[] selected = gui.getSelectedTexts();
-		
+
 		if(tl.getTextListLength() == 0){
 			JOptionPane.showMessageDialog(gui, "No texts to remove");
 			return;
 		}
-		
+
 		if(selected.length == 0){
 			JOptionPane.showMessageDialog(gui, "Please select text(s) to remove.");
 			return;
@@ -185,11 +192,28 @@ public class FFPController implements ActionListener {
 	}
 
 	public void saveImage(){
-		BufferedImage image = gui.getOutputGraphics();
-		try {
-			ImageIO.write(image, "png", new File("dicks.png"));
-		} catch (IOException ex) {
+
+		JFileChooser saveFileChooser = new JFileChooser(workingDirectory);
+		saveFileChooser.setFileFilter(new FileNameExtensionFilter("png", "png"));
+		saveFileChooser.setAcceptAllFileFilterUsed(false);
+
+
+		int returnVal = saveFileChooser.showSaveDialog(gui);
+
+		if(returnVal == JFileChooser.APPROVE_OPTION){
 			
+			File out = saveFileChooser.getSelectedFile();
+			String fn = saveFileChooser.getSelectedFile().getAbsolutePath() + ".png";
+	
+
+
+			BufferedImage image = gui.getOutputGraphics();
+			
+			try {
+				ImageIO.write(image, "png", new File(fn));
+			} catch (IOException ex) {
+
+			}
 		}
 	}
 }

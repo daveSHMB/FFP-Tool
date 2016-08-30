@@ -64,7 +64,7 @@ public class FFP extends SwingWorker<Void, Void>{
 
 		//get ngrams from all texts and merge them into a unified feature profile
 		featureSet = mergeFeatures();
-		System.out.println(featureSet.size());
+		
 		//create frequency array of all ngrams for each text
 		frequencies = getFeatureFrequencies();
 	}
@@ -144,9 +144,9 @@ public class FFP extends SwingWorker<Void, Void>{
 	}
 
 	public void formatTree(){
-
-		//if(tree != null){
+		
 		String treeData = tree.toNexus();
+		
 
 		BufferedWriter writer = null;
 		try {
