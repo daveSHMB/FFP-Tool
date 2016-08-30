@@ -76,7 +76,7 @@ public class GUI extends JFrame implements Observer{
 	public GUI(){
 
 
-		super("FFP Tool 0.1");
+		super("FFP Tool");
 		con = new FFPController(this, tl);
 		tl.addObserver(this);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
