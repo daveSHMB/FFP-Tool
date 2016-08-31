@@ -68,7 +68,6 @@ public class FFP extends SwingWorker<Void, String>{
 			}
 		}
 		
-		
 		//get ngrams from all texts and merge them into a unified feature profile
 		publish("Creating feature profile");
 		featureSet = mergeFeatures();
@@ -146,12 +145,11 @@ public class FFP extends SwingWorker<Void, String>{
 			for(String s:featureSet){
 			
 				if(text.get(s) != null){
-					frequencies[i][j++] = (double) text.get(s);
+					frequencies[i][j++] = text.get(s);
 				}
 				else{
 					frequencies[i][j++] = 0.0;
-				}
-			
+				}	
 			}
 			i++;
 		}
@@ -197,6 +195,7 @@ public class FFP extends SwingWorker<Void, String>{
 		return current;
 	}
 	
+	@Override
 	protected void process(List<String> progress){
 		updateStatus(progress.get(progress.size() - 1));
 	}

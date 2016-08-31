@@ -18,7 +18,6 @@ public class JensenShannonDivergence {
 			m[i] = (p[i] + q[i]) / 2;
 		}
 
-
 		double jsd = 0.5 * (kullbackLeiblerDivergence(p, m) + kullbackLeiblerDivergence(q, m)); 
 		return jsd;
 	}
@@ -33,9 +32,9 @@ public class JensenShannonDivergence {
 
 			kld += p[i] * Math.log( p[i] / m[i] );
 		}
-
-		return kld/Math.log(2);
-
+		
+		kld /= Math.log(2);
+		return kld;
 	}
 
 	public double[] normalise(double[] p){

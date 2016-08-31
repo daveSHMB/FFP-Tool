@@ -63,7 +63,6 @@ public class FFPController implements ActionListener {
 	}
 
 
-
 	public void addText(){
 
 		JFileChooser textSelect = new JFileChooser();
@@ -138,13 +137,8 @@ public class FFPController implements ActionListener {
 
 		for(int i= 0; i < selected.length; i++){
 
-			String author = (String)JOptionPane.showInputDialog(gui, "Enter author's name (if known");
-			String title = (String)JOptionPane.showInputDialog(gui, "Enter text title (if known)");
+			String title = JOptionPane.showInputDialog(gui, "Enter text title (if known)", tl.getText(i).getTitle());
 
-
-			if(!author.equals("")){
-				tl.setAuthor(selected[i], author);
-			}
 			if(!title.equals("")){
 				tl.setTitle(selected[i], title);
 			}
@@ -166,27 +160,7 @@ public class FFPController implements ActionListener {
 		exec = new ExecuteFFP();
 		exec.execute();
 
-
-
-		//test periodically if FFP has completed
-		//		new Thread(){
-		//			@Override
-		//			public void run() {
-		//				while (!ffp.isComplete()){
-		//					try {
-		//						ffp.getStatus();
-		//						//gui.setProgressLabel(ffp.getStatus());
-		//						Thread.sleep(1000);
-		//					} catch (InterruptedException e) {
-		//						// TODO Auto-generated catch block
-		//						e.printStackTrace();
-		//					}
-		//				}
-		//setup and display output
-
 	}
-	//	}.start();
-	//}
 
 	public void saveImage(){
 
@@ -212,6 +186,7 @@ public class FFPController implements ActionListener {
 
 	private class ExecuteFFP extends SwingWorker<Void,Void> {
 
+		@Override
 		protected Void doInBackground() throws Exception {
 
 			JLabel progress = gui.getProgressLabel();

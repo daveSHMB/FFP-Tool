@@ -2,32 +2,20 @@
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
-
+import java.awt.Component;
 import java.awt.Dimension;
 
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
-import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.Observable;
 import java.util.Observer;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.*;
 
@@ -39,21 +27,24 @@ import jloda.phylo.*;
 
 public class GUI extends JFrame implements Observer{
 
-	private JPanel cardHolder, setupOptionsCard, textSetupCard, processingCard, FFPResultsCard, textSetup, textOperations, finalise, editAndConfirm, optionsPanel,
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private JPanel cardHolder, textSetupCard, processingCard, FFPResultsCard, textSetup, textOperations, finalise, editAndConfirm, optionsPanel,
 	resultsPanel, outputPanel, output, ngramPanel, outputStylePanel, displayOptions, processingPanel;
 	private JList<String> texts;
 	private Border textTitle, optionsPanelBorder;
-	private JLabel addText, ngramLengthLbl, progressLabel;
-	private JButton add, remove, edit, confirm, options, confirmOptions, cancelProcess, resultsBack, save;
+	private JLabel progressLabel;
+	private JButton add, remove, edit, confirm, cancelProcess, resultsBack, save;
 	JButton textHelp, treeHelp;
 	JButton ngramHelp;
 	private JSpinner ngramLength;
 	private JComboBox<String> ffpStyle;
-	private JScrollPane treeDisplay;
+	
 	private PhyloGraphView treeView; 
 
 	private CardLayout cl;
-	//private ProgressLabel pl;
 	private PhyloTree phyloTree, cladoTree;
 	private IGraphDrawer treeDrawer;
 
@@ -125,9 +116,10 @@ public class GUI extends JFrame implements Observer{
 		FFPResultsCard.add(FFPresults());
 		cardHolder.add(FFPResultsCard, FFPRESULTSPANEL);
 		cl.show(cardHolder,  FFPRESULTSPANEL);
-
+		//centreScrollPane(treeView.getScrollPane());
 		pack();
 		setLocationRelativeTo(null);
+		//treeView.trans.setCoordinateRect(treeView.getBBox());
 	}
 
 	public JPanel setupDashboard(){
@@ -139,7 +131,7 @@ public class GUI extends JFrame implements Observer{
 		confirm.addActionListener(con);
 		finalise.add(confirm);
 		dashFrame.add(finalise, BorderLayout.SOUTH);
-
+		
 		return dashFrame;
 	}
 
@@ -152,7 +144,7 @@ public class GUI extends JFrame implements Observer{
 		texts = new JList<String>();
 		texts.setVisibleRowCount(15);
 		JScrollPane textsPane = new JScrollPane(texts);
-		textsPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+		textsPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		textsPane.setPreferredSize(new Dimension(100,200));
 
 		String addTextInfo = "<html><p>Texts should be stored as plain .txt files. For a more accurate</p> <p>analysis "
@@ -191,8 +183,6 @@ public class GUI extends JFrame implements Observer{
 
 		textSetup.add("North", textsPane);
 		textSetup.add("Center", editAndConfirm);
-
-
 
 		return textSetup;
 	}
@@ -325,9 +315,6 @@ public class GUI extends JFrame implements Observer{
 		}
 		
 		treeView.getScrollPane().setPreferredSize(new Dimension(1000, 800));
-		treeView.getScrollPane().setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
-		treeView.getScrollPane().setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-		//treeView.getScrollPane().getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
 		
 
 		switch(style){
@@ -377,10 +364,14 @@ public class GUI extends JFrame implements Observer{
 
 		treeView.setAllowEdit(true);
 
-
+		
 		treeView.trans.setCoordinateRect(treeView.getBBox());
+		//treeView.getScrollPane().setSize(treeView.getSize());
 		treeView.fitGraphToWindow();
 		//treeView.centerGraph();
+		
+		
+		
 		return treeView;
 	}
 
