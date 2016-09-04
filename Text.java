@@ -5,8 +5,6 @@ public class Text {
 
 	private String text;
 	private String title;
-	private String author;
-
 
 	public Text(String title, String text){
 

@@ -162,14 +162,14 @@ public class FFP extends SwingWorker<Void, String>{
 		return complete;
 	}
 
+
 	public void formatTree(){
 		
 		String treeData = tree.toNexus();
 		
-
 		BufferedWriter writer = null;
 		try {
-			writer = new BufferedWriter( new FileWriter("out"));
+			writer = new BufferedWriter(new FileWriter("out"));
 			writer.write(treeData);
 			writer.close();
 			Nexus ns = new Nexus();
@@ -182,6 +182,10 @@ public class FFP extends SwingWorker<Void, String>{
 		}	
 	}
 
+	public String getNewick(){
+		return tree.toNewHampshire();
+	}
+	
 
 	public PhyloTree getTree(){
 		return treeOut;
