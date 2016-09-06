@@ -1,4 +1,3 @@
-
 import java.util.List;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -6,63 +5,67 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-
 import java.util.LinkedHashSet;
-
 import javax.swing.SwingWorker;
-
 import org.forester.evoinference.matrix.distance.*;
-
 import org.forester.phylogeny.Phylogeny;
-
 import dendroscope.core.TreeData;
 import dendroscope.io.Nexus;
-
 import jloda.phylo.PhyloTree;
-
-
 import org.forester.evoinference.distance.*;
 
 
 
+/**
+ * Class which performs FFP processing on a text.
+ * 
+ * @author David McLintock
+ *
+ */
 public class FFP extends SwingWorker<Void, String>{
 
-	//TODO HEY MAKE THESE HAVE SCOPE YO
-	LinkedHashSet<String> featureSet;
-	//String[] featureList;
-	TextList tl;
-	ArrayList<HashMap<String, Integer>> textNgramCount;
-	double[][] frequencies;
-	BasicSymmetricalDistanceMatrix dm;
-	int ngramLength;
-	Phylogeny tree;
-	PhyloTree treeOut;
-	String current;
-	boolean complete = false;
+	private LinkedHashSet<String> featureSet;
+	private TextList tl;
+	private ArrayList<HashMap<String, Integer>> textNgramCount;
+	private double[][] frequencies;
+	private BasicSymmetricalDistanceMatrix dm;
+	private int ngramLength;
+	private Phylogeny tree;
+	private PhyloTree treeOut;
+	private String current;
+	private boolean complete = false;
 
+	
+	/**
+	 * Default constructor
+	 * @param tl the list of texts under study
+	 * @param ngramLength the length of ngram to be used
+	 */
 	public FFP(TextList tl, int ngramLength){
 
 		this.tl = tl;
 		this.ngramLength = ngramLength;
 	}
 
-	//TODO break this down into submethods
-	//gets all ngrams from all texts
-	public void buildFeatureList(int ngramLength){
+	
+	/**
+	 * Gets features, frequencies and merges details
+	 * @param ngramLength the length of ngram to be used
+	 */
+	public void buildFeatureList(){
 		publish("Building feature list");
-		//null tree if one already exists
-		tree = null;
-
+		
 		//map of individual text ngram/counts
 		textNgramCount = new ArrayList<HashMap<String, Integer>>();
 
-		//map of all ngrams/zeroed counts - initialise this in mergeFeatures() method??
+		//map of all ngrams/zeroed counts
 		featureSet = new LinkedHashSet<String>();
-
+		
+		//get ngrams/counts from each text
 		for(Text t:tl.getTextList()){
 		
 			//store ngrams/count for this text
-			textNgramCount.add(getNgramCount(t));
+			textNgramCount.add(getNgrams(t.getText()));
 			if(isCancelled()){
 				return;
 			}
@@ -77,13 +80,18 @@ public class FFP extends SwingWorker<Void, String>{
 		frequencies = getFeatureFrequencies();
 	}
 
+	
+	/**
+	 * Creates pairwise distance matrix from JSD results
+	 * @return
+	 */
 	public DistanceMatrix computeDistanceMatrix(){
 		publish("Computing distance matrix");
 		
 		dm = new BasicSymmetricalDistanceMatrix(frequencies.length);
 
 		JensenShannonDivergence jsd = new JensenShannonDivergence();
-
+		//compare each frequency vector with each other
 		for(int i=0; i < frequencies.length; i++){
 			for(int j=0; j < frequencies.length; j++){
 				
@@ -102,29 +110,62 @@ public class FFP extends SwingWorker<Void, String>{
 			}
 		}
 
-		//add identifiers
+		//add identifying text labels
 		for(int i=0; i < tl.getTextListLength(); i++){
 			dm.setIdentifier(i, tl.getText(i).getTitle());
 		}
 		return dm;
 	}
 
+	
+	/**
+	 * Performs neighbour joining and creates tree
+	 * @param dm
+	 */
 	public void neighbourJoin(BasicSymmetricalDistanceMatrix dm){
 		publish("Preparing output");
 		NeighborJoining nj = NeighborJoining.createInstance();
 		tree = nj.execute(dm);
 
 	}
+	
+	
+	/**
+	 * Gets ngrams and their frequency from the text
+	 * @param text the text content error
+	 * @return a HashMap of unique ngrams and their frequency
+	 */
+	public HashMap<String, Integer> getNgrams(String text){
 
-	public HashMap<String, Integer> getNgramCount(Text t){
-		return t.getNgrams(ngramLength);
+		//remove all spaces from text
+		String noSpaces = text.replaceAll("\\s+", "");
+
+		HashMap<String, Integer> ngrams = new HashMap<String, Integer>();
+		
+
+		for(int i = 0; i < noSpaces.length(); i++){
+			//tests if end of string reached
+			if((i+ngramLength <= noSpaces.length())){
+				String ngram = noSpaces.substring(i, i+ngramLength);
+				//adds ngrams which do not contain punctuation to list, defaulting count to 1 or adding 1 to existing count
+				if(ngram.matches("[a-zA-Z]+")){
+					ngrams.put(ngram, ngrams.getOrDefault(ngram, 1) + 1);
+				}
+			}
+		}
+		return ngrams;
 	}
 
+
+	/**
+	 * Merges feature lists
+	 * @return an in order list of ngrams
+	 */
 	public LinkedHashSet<String> mergeFeatures(){
 		for(HashMap<String, Integer> ngrams: textNgramCount){
 			for(String s:ngrams.keySet()){
 			
-				//add only if occurs more than once
+				//add only if feature occurs more than once
 				if(ngrams.get(s) > 1){
 					featureSet.add(s);
 					if(isCancelled()){
@@ -136,10 +177,17 @@ public class FFP extends SwingWorker<Void, String>{
 		return featureSet;
 	}
 
+	
+	/**
+	 * Creates Frequency Profile for each text
+	 * @return 2d array containing all Frequency Profiles
+	 */
 	public double[][] getFeatureFrequencies(){
 		frequencies = new double[tl.getTextListLength()][featureSet.size()];
 
 		int i = 0;
+		
+		//for each ngram get frequency if part of text, set to zero if not
 		for(HashMap<String, Integer> text:textNgramCount){
 			int j = 0;
 			for(String s:featureSet){
@@ -157,18 +205,26 @@ public class FFP extends SwingWorker<Void, String>{
 	}
 
 
-	//maybe change this??
+	/**
+	 * Returns whether FFP completed successfully
+	 * @return true if complete
+	 */
 	public boolean isComplete(){
 		return complete;
 	}
 
-
+	
+	/**
+	 * Formats tree using Dendroscope library
+	 */
 	public void formatTree(){
 		
 		String treeData = tree.toNexus();
 		
 		BufferedWriter writer = null;
 		try {
+			
+			//save tree file and reopen as tree (enforced due to library limitations)
 			writer = new BufferedWriter(new FileWriter("out"));
 			writer.write(treeData);
 			writer.close();
@@ -182,35 +238,60 @@ public class FFP extends SwingWorker<Void, String>{
 		}	
 	}
 
+	
+	/**
+	 * Returns Newick string representing phylo tree
+	 * @return string representation of tree
+	 */
 	public String getNewick(){
 		return tree.toNewHampshire();
 	}
 	
 
+	/**
+	 * Returns the final phylo tree object
+	 * @return the computed tree
+	 */
 	public PhyloTree getTree(){
 		return treeOut;
 	}
 	
+	
+	/**
+	 * Update current state of FFP processing for GUI output
+	 * @param current the details of the present operation
+	 */
 	public void updateStatus(String current){
 		this.current = current;
 	}
 	
+	
+	/**
+	 * Gets the current status of FFP processing for GUI output
+	 * @return the current status of FFP processing
+	 */
 	public String getStatus(){
 		return current;
 	}
 	
+	/* (non-Javadoc)
+	 * @see javax.swing.SwingWorker#process(java.util.List)
+	 */
 	@Override
 	protected void process(List<String> progress){
 		updateStatus(progress.get(progress.size() - 1));
 	}
 
+	/* (non-Javadoc)
+	 * @see javax.swing.SwingWorker#doInBackground()
+	 */
 	@Override
 	protected Void doInBackground() throws Exception {
 
-
+		//test at every step whether cancel has been pressed
 		while(!isCancelled()){
 			if(!isCancelled()){
-			buildFeatureList(ngramLength);
+			buildFeatureList();
 			}
 			if(!isCancelled()){
 			computeDistanceMatrix();
@@ -221,6 +302,7 @@ public class FFP extends SwingWorker<Void, String>{
 			if(!isCancelled()){
 			formatTree();
 			}
+			//set FFP status to complete
 			complete = true;
 			this.cancel(true);
 		}

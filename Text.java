@@ -1,43 +1,50 @@
-import java.util.HashMap;
 
-
+/**
+ * Class representing a text, storing its title and the full text of the work
+ * @author David McLintock
+ *
+ */
 public class Text {
 
 	private String text;
 	private String title;
 
+	/**
+	 * Constructor for a Text object
+	 * @param title the title of the text
+	 * @param text the full content of the text
+	 */
 	public Text(String title, String text){
 
 		this.title = title;
 		this.text = text.toLowerCase();
 	}
 
+	
+	/**
+	 * Returns the title of the text
+	 * @return the title of the text
+	 */
 	public String getTitle(){
 		return title;
 	}
 
+	
+	/**
+	 * Sets the title of the text
+	 * @param title the new title of the text
+	 */
 	public void setTitle(String title){
 		this.title = title;
-		System.out.println(this.title);
 	}
 
-	public HashMap<String, Integer> getNgrams(int ngramLength){
-
-		String noSpaces = text.replaceAll("\\s+", "");
-
-		HashMap<String, Integer> ngrams = new HashMap<String, Integer>();
-
-
-		for(int i = 0; i < noSpaces.length(); i++){
-			if((i+ngramLength <= noSpaces.length())){
-				String ngram = noSpaces.substring(i, i+ngramLength);
-
-				if(ngram.matches("[a-zA-Z]+")){
-					ngrams.put(ngram, ngrams.getOrDefault(ngram, 0) + 1);
-				}
-			}
-		}
-		return ngrams;
+	
+	/**
+	 * Gets the content of the text
+	 * @return the content of the text
+	 */
+	public String getText(){
+		return this.text;
 	}
 
 }
