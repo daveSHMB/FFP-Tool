@@ -10,7 +10,7 @@ Tree creation and display is enabled using Dendroscope:
 
 - Daniel H. Huson and Celine Scornavacca, Dendroscope 3: An Interactive Tool for Rooted Phylogenetic Trees and Networks, Syst Biol first published online July 10, 2012 doi:10.1093/sysbio/sys062
 
-with neighbour joining functionality provided through the forester library, available at:
+Neighbour joining functionality provided through the forester library, available at:
 
 https://sites.google.com/site/cmzmasek/home/software/forester
 
