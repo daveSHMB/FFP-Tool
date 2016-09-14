@@ -3,9 +3,7 @@
  * Class computing the Jensen Shannon Divergence of two frequency lists
  * @author David McLintock
  */
-public class JensenShannonDivergence {
-
-	private double[] p, q, m;
+public class JensenShannonDivergence implements DivergenceMethod {
 
 	/**
 	 * Default constructor for JSD object
@@ -21,13 +19,14 @@ public class JensenShannonDivergence {
 	 * @param q the second frequency vector
 	 * @return the result of the JSD calculation
 	 */
-	public double getJSDDivergence(double[] p, double[] q){
+	@Override
+	public double computeDivergence(double[] p, double[] q){
 		
 		//normalise vectors
-		this.p = normalise(p);
-		this.q = normalise(q);
+		p = normalise(p);
+		q = normalise(q);
 
-		m = new double[p.length];
+		double[] m = new double[p.length];
 
 		for(int i = 0; i < m.length; i++){
 			m[i] = (p[i] + q[i]) / 2;

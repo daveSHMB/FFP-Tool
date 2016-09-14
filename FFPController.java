@@ -44,7 +44,6 @@ public class FFPController implements ActionListener {
 	
 	/**
 	 * Default constructor for the controller
-	 * @param gui
 	 * @param tl
 	 */
 	public FFPController(SetupWindow sw, TextList tl){

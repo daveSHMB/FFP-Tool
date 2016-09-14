@@ -50,7 +50,6 @@ public class FFP extends SwingWorker<Void, String>{
 	
 	/**
 	 * Gets features, frequencies and merges details
-	 * @param ngramLength the length of ngram to be used
 	 */
 	public void buildFeatureList(){
 		publish("Building feature list");
@@ -82,15 +81,19 @@ public class FFP extends SwingWorker<Void, String>{
 
 	
 	/**
-	 * Creates pairwise distance matrix from JSD results
-	 * @return
+	 * Creates pairwise distance matrix from divergence measure
+	 * @return the completed distance matrix
 	 */
 	public DistanceMatrix computeDistanceMatrix(){
 		publish("Computing distance matrix");
 		
 		dm = new BasicSymmetricalDistanceMatrix(frequencies.length);
 
-		JensenShannonDivergence jsd = new JensenShannonDivergence();
+		
+		//divergence method used
+		DivergenceMethod divergence = new JensenShannonDivergence();
+		
+		
 		//compare each frequency vector with each other
 		for(int i=0; i < frequencies.length; i++){
 			for(int j=0; j < frequencies.length; j++){
@@ -103,7 +106,7 @@ public class FFP extends SwingWorker<Void, String>{
 					dm.setValue(i, j, 0.0);
 				}
 				else{
-					double distance = jsd.getJSDDivergence(frequencies[i], frequencies[j]);
+					double distance = divergence.computeDivergence(frequencies[i], frequencies[j]);
 					dm.setValue(i, j, distance);
 				
 				}
