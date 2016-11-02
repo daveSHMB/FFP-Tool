@@ -79,7 +79,6 @@ public class FFP extends SwingWorker<Void, String>{
 		frequencies = getFeatureFrequencies();
 	}
 
-	
 	/**
 	 * Creates pairwise distance matrix from divergence measure
 	 * @return the completed distance matrix
@@ -91,7 +90,7 @@ public class FFP extends SwingWorker<Void, String>{
 
 		
 		//divergence method used
-		DivergenceMethod divergence = new JensenShannonDivergence();
+		DivergenceMethod jsd = new JensenShannonDivergence();
 		
 		
 		//compare each frequency vector with each other
@@ -106,9 +105,8 @@ public class FFP extends SwingWorker<Void, String>{
 					dm.setValue(i, j, 0.0);
 				}
 				else{
-					double distance = divergence.computeDivergence(frequencies[i], frequencies[j]);
+					double distance = jsd.computeDivergence(frequencies[i], frequencies[j]);
 					dm.setValue(i, j, distance);
-				
 				}
 			}
 		}
@@ -120,7 +118,6 @@ public class FFP extends SwingWorker<Void, String>{
 		return dm;
 	}
 
-	
 	/**
 	 * Performs neighbour joining and creates tree
 	 * @param dm
@@ -131,35 +128,30 @@ public class FFP extends SwingWorker<Void, String>{
 		tree = nj.execute(dm);
 
 	}
-	
-	
-	/**
-	 * Gets ngrams and their frequency from the text
-	 * @param text the text content error
-	 * @return a HashMap of unique ngrams and their frequency
-	 */
+
 	public HashMap<String, Integer> getNgrams(String text){
 
 		//remove all spaces from text
 		String noSpaces = text.replaceAll("\\s+", "");
 
 		HashMap<String, Integer> ngrams = new HashMap<String, Integer>();
-		
+
 
 		for(int i = 0; i < noSpaces.length(); i++){
-			//tests if end of string reached
+			//test if end of string reached
 			if((i+ngramLength <= noSpaces.length())){
 				String ngram = noSpaces.substring(i, i+ngramLength);
-				//adds ngrams which do not contain punctuation to list, defaulting count to 1 or adding 1 to existing count
+				//add new ngrams which do not contain punctuation to list and default count to zero
+				//if ngram already in list add 1 to its count
 				if(ngram.matches("[a-zA-Z]+")){
-					ngrams.put(ngram, ngrams.getOrDefault(ngram, 1) + 1);
+					ngrams.put(ngram, ngrams.getOrDefault(ngram, 0) + 1);
 				}
 			}
 		}
 		return ngrams;
 	}
-
-
+	
+	
 	/**
 	 * Merges feature lists
 	 * @return an in order list of ngrams
@@ -180,6 +172,7 @@ public class FFP extends SwingWorker<Void, String>{
 		return featureSet;
 	}
 
+	
 	
 	/**
 	 * Creates Frequency Profile for each text
@@ -207,7 +200,6 @@ public class FFP extends SwingWorker<Void, String>{
 		return frequencies;
 	}
 
-
 	/**
 	 * Returns whether FFP completed successfully
 	 * @return true if complete
@@ -215,6 +207,7 @@ public class FFP extends SwingWorker<Void, String>{
 	public boolean isComplete(){
 		return complete;
 	}
+
 
 	
 	/**
@@ -241,7 +234,7 @@ public class FFP extends SwingWorker<Void, String>{
 		}	
 	}
 
-	
+
 	/**
 	 * Returns Newick string representing phylo tree
 	 * @return string representation of tree
@@ -312,6 +305,5 @@ public class FFP extends SwingWorker<Void, String>{
 		
 		return null;
 	}
-	
 
 }

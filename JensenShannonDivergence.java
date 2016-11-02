@@ -19,7 +19,6 @@ public class JensenShannonDivergence implements DivergenceMethod {
 	 * @param q the second frequency vector
 	 * @return the result of the JSD calculation
 	 */
-	@Override
 	public double computeDivergence(double[] p, double[] q){
 		
 		//normalise vectors

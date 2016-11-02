@@ -1,4 +1,5 @@
 
+
 /**
  * Interface for implementing divergence measures
  * 
@@ -15,5 +16,7 @@ public interface DivergenceMethod {
 	 * @return the computed divergence
 	 */
 	public double computeDivergence(double[] p, double[] q);
-	
+
 }
+
+
