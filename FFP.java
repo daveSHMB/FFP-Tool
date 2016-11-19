@@ -221,12 +221,13 @@ public class FFP extends SwingWorker<Void, String>{
 		try {
 			
 			//save tree file and reopen as tree (enforced due to library limitations)
-			writer = new BufferedWriter(new FileWriter("out"));
+			writer = new BufferedWriter(new FileWriter("ffp.tmp"));
 			writer.write(treeData);
 			writer.close();
 			Nexus ns = new Nexus();
-			File f = new File("out");
+			File f = new File("ffp.tmp");
 			TreeData[] td = ns.read(f);
+			f.delete();
 			treeOut = td[0];
 
 		} catch (IOException e1) {
