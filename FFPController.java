@@ -16,6 +16,7 @@ import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import dendroscope.core.TreeData;
 import dendroscope.io.Newick;
+import dendroscope.io.Nexus;
 
 
 /**
@@ -33,15 +34,15 @@ public class FFPController implements ActionListener {
 	private File workingDirectory;
 	private ExecuteFFP exec;
 
-	
+
 	/**
 	 * Default constructor for the FFP controller
 	 */
 	public FFPController(){
-		
+
 	}
-	
-	
+
+
 	/**
 	 * Default constructor for the controller
 	 * @param tl
@@ -50,8 +51,8 @@ public class FFPController implements ActionListener {
 		this.sw = sw;
 		this.tl = tl;
 	}
-	
-	
+
+
 	/**
 	 * Adds model
 	 * @param tl the model to be added
@@ -59,8 +60,8 @@ public class FFPController implements ActionListener {
 	public void addModel(TextList tl){
 		this.tl = tl;
 	}
-	
-	
+
+
 	/**
 	 * Adds SetupWindow instance to controller 
 	 * @param sw the main setup window
@@ -68,8 +69,8 @@ public class FFPController implements ActionListener {
 	public void addView(SetupWindow sw){
 		this.sw = sw;
 	}
-	
-	
+
+
 	/**
 	 * Adds ResultsWindow instance to controller
 	 * @param rw
@@ -77,14 +78,14 @@ public class FFPController implements ActionListener {
 	public void addView(ResultsWindow rw){
 		this.rw = rw;
 	}
-	
+
 
 	/* 
 	 * Responds to user input
 	 */
 	@Override
 	public void actionPerformed(ActionEvent ae) {
-		
+
 		if(ae.getActionCommand().equals("Add text(s)")){
 			addText();
 		}
@@ -116,15 +117,15 @@ public class FFPController implements ActionListener {
 			if(workingDirectory != null){
 				openTree.setCurrentDirectory(workingDirectory);
 			}
-			
+
 			int returnVal = openTree.showOpenDialog(sw);
-			
+
 			if (returnVal == JFileChooser.APPROVE_OPTION){
 				File f = openTree.getSelectedFile();
-				
+
 				openTree(f);
 			}
-			
+
 		}
 		else if(ae.getActionCommand().equals("Return to text setup")){
 			rw.setVisible(false);
@@ -140,12 +141,12 @@ public class FFPController implements ActionListener {
 	public void addText(){
 
 		JFileChooser textSelect = new JFileChooser();
-		
+
 		//set valid file extensions
 		FileNameExtensionFilter filter = new FileNameExtensionFilter("Text file", "txt");
 		textSelect.setFileFilter(filter);
 		textSelect.setMultiSelectionEnabled(true);
-		
+
 		//store current directory as system default
 		if(workingDirectory != null){
 			textSelect.setCurrentDirectory(workingDirectory);
@@ -182,7 +183,7 @@ public class FFPController implements ActionListener {
 		}
 	}
 
-	
+
 	/**
 	 * Gets texts to be removed from a list and sends to text list
 	 */
@@ -199,21 +200,21 @@ public class FFPController implements ActionListener {
 			JOptionPane.showMessageDialog(sw, "Please select text(s) to remove.");
 			return;
 		}
-		
+
 		//loop through selected texts and remove
 		for(int i=selected.length - 1; i >= 0; i--){
 			tl.removeText(selected[i]);
 		}
 	}
 
-	
+
 	/**
 	 * Gets text to be edited and sends to text list
 	 */
 	public void editText(){
 
 		int[] selected = sw.getSelectedTexts();
-		
+
 		//warn user if no texts selected
 		if(selected.length == 0){
 			JOptionPane.showMessageDialog(sw, "No text(s) selected for editing");
@@ -229,23 +230,31 @@ public class FFPController implements ActionListener {
 			}
 		}
 	}
-	
-	
+
+
 	/**
 	 * Opens a tree file in newick format
 	 * @param f the tree file to be opened
 	 */
 	public void openTree(File f){
-		
+
 		Newick nw = new Newick();
+		Nexus nx = new Nexus();
 		//tests file format then converts to tree format
+
+		//TODO refactor the repeated catch
 		if(nw.isCorrectFileType(f)){
 			try {
 				TreeData[] tree = nw.read(f);
-				rw.addTree(tree[0]);
-				rw.displayTree();
-				rw.setVisible(true);
-				
+				addTree(tree);
+			} catch (IOException e) {
+				JOptionPane.showMessageDialog(sw, "Could not open file", "Error", JOptionPane.ERROR_MESSAGE);
+			}
+		}
+		else if(nx.isCorrectFileType(f)){
+			try {
+				TreeData[] tree = nx.read(f);
+				addTree(tree);
 			} catch (IOException e) {
 				JOptionPane.showMessageDialog(sw, "Could not open file", "Error", JOptionPane.ERROR_MESSAGE);
 			}
@@ -255,7 +264,13 @@ public class FFPController implements ActionListener {
 		}
 	}
 
-	
+	public void addTree(TreeData[] tree){
+		rw.addTree(tree[0]);
+		rw.displayTree();
+		rw.setVisible(true);
+	}
+
+
 	/**
 	 * Tests input text size and starts FFP
 	 */
@@ -278,7 +293,7 @@ public class FFPController implements ActionListener {
 
 	}
 
-	
+
 	/**
 	 * Saves an .png of the current tree
 	 */
@@ -303,8 +318,8 @@ public class FFPController implements ActionListener {
 			}
 		}
 	}
-	
-	
+
+
 	/**
 	 * Saves the current tree in newick format
 	 */
@@ -313,14 +328,14 @@ public class FFPController implements ActionListener {
 		JFileChooser saveFileChooser = new JFileChooser(workingDirectory);
 		saveFileChooser.setFileFilter(new FileNameExtensionFilter("Newick", "new"));
 		saveFileChooser.setAcceptAllFileFilterUsed(false);
-		
+
 		int returnVal = saveFileChooser.showSaveDialog(rw);
 		//saves tree file
 		if(returnVal == JFileChooser.APPROVE_OPTION){
 			String fn = saveFileChooser.getSelectedFile().getAbsolutePath() + ".new";
-			
+
 			String outputText = ffp.getNewick();
-			
+
 			BufferedWriter bw;
 			try {
 				bw = new BufferedWriter(new FileWriter(fn));
@@ -331,8 +346,8 @@ public class FFPController implements ActionListener {
 			}
 		}
 	}
-	
-	
+
+
 	/**
 	 * Creates FFP object and executes while updating progress
 	 * @author David McLintock
@@ -367,7 +382,7 @@ public class FFPController implements ActionListener {
 				}
 				this.cancel(true);
 			}
-			
+
 			//hide setup panel, add tree to results window and make visible
 			sw.setVisible(false);
 			rw.addTree(ffp.getTree());

@@ -40,6 +40,7 @@ public class SetupWindow extends JFrame implements Observer{
 	private final Dimension windowSize = new Dimension(100,200);
 	private final int visibleRows = 15;
 	private URL helpImage = getClass().getResource("img/helpicon.png");
+	private JMenuItem openTree;
 	
 	
 	/**
@@ -105,7 +106,7 @@ public class SetupWindow extends JFrame implements Observer{
 		//keyboard shortcut
 		file.setMnemonic(KeyEvent.VK_F);
 		//open tree option
-		JMenuItem openTree = new JMenuItem("Open existing tree");
+		openTree = new JMenuItem("Open existing tree");
 		file.add(openTree);
 		menuBar.add(file);
 		setJMenuBar(menuBar);
@@ -254,6 +255,7 @@ public class SetupWindow extends JFrame implements Observer{
 		remove.addActionListener(con);
 		edit.addActionListener(con);
 		cancelProcess.addActionListener(con);
+		openTree.addActionListener(con);
 	}
 
 	
